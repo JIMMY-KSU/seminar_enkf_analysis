@@ -1,0 +1,41 @@
+- Intro
+  - We know Bayesian inverse problems
+  - We know EnKF
+  - We know little about its properties :: goal of this talk
+  - Summary of each section
+
+- EnKF for inverse problems
+  - Recall the Bayesian solution to the inverse problem
+  - Recall the update rule of the EnKF
+  - Define the artificial dynamic to use EnKF for inverse problems
+  - Derive the simplified update rule for our case
+
+  At this point, we have a simple algorithm to approximate inverse problems. I still don't understand the idea of "linearization" of SMC. Important for me, but probably won't help the audience.
+
+- A different view at our algorithm
+  - Rewritting the update rule to make it look like an Euler-Maruyama scheme
+  - Let h -> 0 and present the discretized SDE
+  - Visually explain with particles following the underlying gradient flow
+
+  That's not just cool, it also allows to study properties of the algorithm
+
+
+- Properties of the EnKF (for a noise free linear model)
+  - Collapse to mean for t -> inf (Thm 4.2)
+  - Unbiasedness (in the spawned space!) for t -> inf (Thm 4.3)
+
+  I actually don't think one can prove both in the time I have. Thm 4.3 is more interesting and important, but maybe too complicated (requires introducing many auxiliary variables and prove stuff about them). Thm 4.2 is a cool result that is not too hard to prove, maybe better.
+  Conclude by mentionning possible generalizations (with noise, in hilbert spaces)
+
+
+  Instead of doing one proof in depth, talk about the two ideas without getting too technical (beweisidee)
+
+
+- Application
+  - Introduce the PDE
+  - Show results it in the noise free case to check the convergence rate we have proven
+  - Demonstrate the collapse that we proved
+  - Show results in the noisy case
+
+
+Done.
