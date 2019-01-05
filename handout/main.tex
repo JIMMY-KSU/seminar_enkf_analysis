@@ -1,0 +1,140 @@
+\documentclass[a4paper,12pt]{elsarticle}
+
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}
+
+\begin{document}
+
+\begin{frontmatter}
+
+\title{Analysis of the Ensemble Kalman Filter for Inverse Problems}
+\author{Matthieu Bulté}
+\ead{matthieu.bulte@tum.de}
+\address{Technische Universität München}
+
+\begin{abstract}
+The EnKF (Ensemble Kalman Filter) is a widely adopted methodology
+for state estimation in partially and noisily observed dynamical systems. While
+its adaptation for estimating solutions of Bayesian Inverse Problems (BIPs)
+has shown many positive empirical results, the theoretical understanding of
+the method is still poor. In this paper, we present the rigorous analysis of
+the EnKF proposed by C. Shillings and A. Stuart \cite{schillings2017analysis} and demonstrate their
+theoretical results through numerical experiments.
+\end{abstract}
+\begin{keyword}
+EnKF \sep Inverse Problems \sep Bayesian statistics \sep Optimisation
+\end{keyword}
+\end{frontmatter}
+
+\section{Introduction} \label{sec:1} 
+The ensemble Kalman filter (EnKF) has had a large impact in the
+natural sciences over the past years. Using an ensemble of particles,
+the method was orginally used to approximate the solution of data
+assimilation problems \cite{iglesias2013ensemble}, but can also be extended to approximate
+the solution of Bayesian inverse problems. While the method is well understood
+in the large ensemble limit, the method is often used
+by practitioners because of its robustness - even with a small number
+of particles. It is thus relevant to study different properties of the
+algorithm without considering the large ensemble limit.
+
+This article is a review of the work of C. Shillings and A. Stuart \cite{schillings2017analysis}.
+Section \ref{sec:2} presents the EnKF applied to inverse problems and will draw links
+between the method and the optimization approach to inverse problems. A selection of theoretical
+results will then be presented and proved in Section \ref{sec:3}, and empirically tested with numerical
+experiments in Section \ref{sec:4}.
+
+\section{A fresh look at the EnKF} \label{sec:2}
+\subsection{Inverse Problems} \label{subsec:2:1}
+In this section, we will consider the EnKF for solving inverse problems. Given a continuous
+map $\mathcal{G} : \mathcal{X} \rightarrow \mathcal{Y}$ between two Hilbert spaces $\mathcal{X}$
+and $\mathcal{Y}$, we would like to identify $u \in \mathcal{X}$ solving 
+\begin{equation} \label{eq:2:1:1}
+    y = \mathcal{G}(u) + \eta,
+\end{equation}
+where $\eta$ is the \textit{observational noise}. A central element in solving inverse problems is the
+\textit{least squares functional} $\Phi : \mathcal{X} \times \mathcal{Y} \rightarrow \mathbb{R}$, measuring
+the model-data misfit
+given by
+\begin{equation} \label{eq:2:1:2}
+    \Phi(u; y) = \frac12\norm{\Gamma^{-1/2}\left(y - \mathcal{G}(u)\right)}_\mathcal{Y}^2.
+\end{equation}
+In this expression, $\Gamma$ is a positive semi-definite operator describing the covariance
+structure of the observational noise $\eta$. In the general case, this problem is \textit{ill-posed}
+and minimization of the data-model misfit through minimization of the least squares operator is not
+possible. However, solvability of this system can be improved by use of \textit{regularization} methods.
+
+As thouroughly described by A. Stuart \cite{stuart2010inverse} one successful approach to regularization of inverse problems
+is to consider the problem from a Bayesian point of view. There, the problem in (\ref{eq:2:1:1}) is replaced
+by considering the pair $(u, y)$ as a joint random variable over $\mathcal{X} \times \mathcal{Y}$. Assuming
+that we can encode current knowledge about $u$ in a \textit{prior} distribution $\mu_0$ with $u \sim \mu_0$
+independent of the observational noise $\eta \sim \text{N}(0, \Sigma)$, the solution of the
+\textit{Bayesian inverse problem} is given by $u|y \sim \mu$ with
+\begin{equation} \label{eq:2:1:3}
+    \mu(\text{d}u) \propto \exp\left(-\Phi(u; y)\right)\mu_0(\text{d}u).
+\end{equation}
+
+We now investigate how the EnKF method can be used to estimate the solution given in (\ref{eq:2:1:3}) of the 
+inverse problem.
+
+\subsection{The EnKF for inverse problems} \label{subsec:2:2}
+Since the EnKF algorithm is designed to solve data assimilation problem, an artificial dynamic must be
+defined in order to apply the method to inverse problems. To that end, we consider a discrete dynamic
+over the space $\mathcal{X} \times \mathcal{Y}$ defined by the operator
+\begin{equation} \label{eq:2:2:1}
+    \Xi(u, p) = (u, \mathcal{G}(u)).
+\end{equation}
+We then complete this artificial process by defining the observational process, such that for each
+time step $n \in \mathbb{N}$ with associated state $(u_n, p_n)$, the observation $y_n$ is given by
+\begin{equation} \label{eq:2:2:2}
+    y_n = p_n + \xi_n,
+\end{equation}
+where $\{\xi_j\}_{j\in \mathbb{N}}$ is an i.i.d. sequence distributed according to $\text{N}(0, \Sigma)$,
+in which $\Sigma$ is a positive semidefinite matrix.
+
+TODO: it's really kind of weird here, because the discretization approaches from \cite{iglesias2013ensemble} and
+\cite{schillings2017analysis} do not really match.
+
+The EnKF can then be used to estimate each step $n \in \mathbb{N}$ of the dynamical system through an
+unweighted set of $J$ particles $\{u_n^{(j)}\}_{j = 1}^J$ constructing the empirical measure
+\begin{equation} \label{eq:2:2:3}
+    \mu_n \approx \hat{\mu}_n := \frac1J\sum_{j=1}^J \delta_{u_n^{(j)}}.
+\end{equation}
+
+Furthermore, replacing the dynamic (\ref{eq:2:2:2}) in the standard update formulate of the EnKF given the
+following update rule for the ensemble of particles
+\begin{equation} \label{eq:2:2:4}
+    u_{n+1}^{(j)} = u_{n}^{(j)} + C^{\text{up}}(u_n)[C^{\text{pp}}(u_n) + h^{-1}\Gamma]^{-1}(y_{n+1}^{(j)} - G(u_n^{(j)}))
+\end{equation}
+with $C^{\text{up}} = \hat{\text{cov}}(u, \mathcal{G}(u))$ and $C^{\text{pp}} = \hat{\text{cov}}(\mathcal{G}(u), \mathcal{G}(u))$,
+in which $\hat{\text{cov}}$ is the empirical covariance based on the approximate measure $\hat{\mu}_n$.
+We can then consider cases where $\Sigma = \Gamma$, or where $\Sigma = 0$, i.e. where no artificial noise
+is added to the data. In this article, we will only consider the second case.
+
+This application of the EnKF for solving inverse problems can be shown to properly approximate the
+distribution $\mu$ of $u|y$ in the large ensemble limit when the model $\mathcal{G}$ is linear and
+the noise $\eta$ is Gaussian, see \cite{goldstein2007bayes, law2016deterministic}. However, since the
+EnKF relies on a linear approximation, the error term resulting from the model estimation is independent
+of the number of particles, see \cite{ernst2015analysis}.
+
+\section{Study of the continous time limit} \label{sec:3}
+
+While we have mentionned some properties of the large ensemble limit, it is also interesting to consider
+what happens for $h \rightarrow 0$, that is, we want to consider the continuous time limit
+of the algorithm. With that in mind, we can take a carefull look at the update rule (\ref{eq:2:2:4}) and
+recognize an Euler-Maruyama discretization of the following coupled system of SDEs
+\begin{equation} \label{eq:3:1}
+    \frac{\text{d}u^{(j)}}{\text{d}t} = C^{\text{up}}(u)\Gamma^{-1}\left(y - \mathcal{G}(u^{(j)})\right) + C^{\text{up}}(u)\Gamma^{-1}\sqrt{\Sigma}\frac{\text{d}W^{(j)}}{\text{d}t},
+\end{equation}
+where $\{W^{(j)}\}_{j=1}^J$ are independent Browninan motions.
+\section{Numerical results} \label{sec:4}
+
+\section{Conclusion} \label{sec:5}
+
+\bibliographystyle{model1-num-names}
+\bibliography{../literature/literature.bib}
+
+\end{document}

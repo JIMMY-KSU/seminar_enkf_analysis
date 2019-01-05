@@ -2,3 +2,12 @@
 .idea/
 literature/*.pdf
 __pycache__
+*.bbl
+*.blg
+*.log
+*.spl
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.aux
+*.bst
