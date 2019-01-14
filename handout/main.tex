@@ -1,4 +1,4 @@
-\documentclass[a4paper,5p]{elsarticle}
+\documentclass[a4paper,twocolumn,10pt]{article}
 
 \usepackage{graphicx}
 \usepackage{amsmath}
@@ -9,26 +9,11 @@
 
 \begin{document}
 
-\begin{frontmatter}
-
 \title{Analysis of the Ensemble Kalman Filter for Inverse Problems}
 \author{Matthieu Bulté}
-\ead{matthieu.bulte@tum.de}
-\address{Technische Universität München}
+\date{17.01.2019}
 
-\begin{abstract}
-The EnKF (Ensemble Kalman Filter) is a widely adopted methodology
-for state estimation in partially and noisily observed dynamical systems. While
-its adaptation for estimating solutions of Bayesian Inverse Problems (BIPs)
-has shown many positive empirical results, the theoretical understanding of
-the method is still poor. In this paper, we summarize the rigorous analysis of
-the EnKF proposed by C. Shillings and A. Stuart \cite{schillings2017analysis} and demonstrate their
-theoretical results through numerical experiments.
-\end{abstract}
-\begin{keyword}
-EnKF \sep Inverse Problems \sep Bayesian statistics \sep Optimisation
-\end{keyword}
-\end{frontmatter}
+\maketitle
 
 \section{Introduction} \label{sec:1} 
 The ensemble Kalman filter (EnKF) has had a large impact in the
@@ -105,7 +90,10 @@ unweighted set of $J$ particles $\{u_n^{(j)}\}_{j = 1}^J$, constructing the empi
 Replacing the dynamic (\ref{eq:2:2:2}) in the standard update formulate of the EnKF gives the
 following update rule for the ensemble of particles
 \begin{equation} \label{eq:2:2:4}
-    u_{n+1}^{(j)} = u_{n}^{(j)} + C^{\text{up}}(u_n)[C^{\text{pp}}(u_n) + h^{-1}\Gamma]^{-1}(y_{n+1}^{(j)} - G(u_n^{(j)}))
+    \begin{aligned}
+    u_{n+1}^{(j)} &= u_{n}^{(j)} \\
+    &+ C^{\text{up}}(u_n)[C^{\text{pp}}(u_n) + h^{-1}\Gamma]^{-1}(y_{n+1}^{(j)} - G(u_n^{(j)}))
+    \end{aligned}
 \end{equation}
 with 
 \begin{equation}
