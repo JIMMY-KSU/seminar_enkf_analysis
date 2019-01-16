@@ -1,9 +1,17 @@
-\documentclass[a4paper,twocolumn,10pt]{article}
+\documentclass[10pt,a4paper]{article}
 
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
 \usepackage{graphicx}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{amsthm}
+\usepackage{titling}
+
+\setlength{\droptitle}{-10em}
+
+\newtheorem{lemma}{Lemma}
+\newtheorem{theorem}{Theorem}
 
 \newcommand{\norm}[1]{\left\lVert#1\right\rVert}
 
@@ -15,140 +23,164 @@
 
 \maketitle
 
-\section{Introduction} \label{sec:1} 
-The ensemble Kalman filter (EnKF) has had a large impact in the
-natural sciences over the past years. Using an ensemble of particles,
-the method was orginally used to approximate the solution of data
-assimilation problems \cite{iglesias2013ensemble}, but can also be extended to approximate
-the solution of Bayesian inverse problems. While the method is well understood
-in the large ensemble limit, the method is often used
-by practitioners because of its robustness - even with a small number
-of particles. It is thus relevant to study different properties of the
-algorithm without considering the large ensemble limit.
-
-This article is a review of the work of C. Shillings and A. Stuart \cite{schillings2017analysis}.
-Section \ref{sec:2} presents the EnKF applied to inverse problems and will draw links
-between the method and the optimization approach to inverse problems. A selection of theoretical
-results will then be presented and proved in Section \ref{sec:3}, and empirically tested with numerical
-experiments in Section \ref{sec:4}.
-
-\section{A fresh look at the EnKF} \label{sec:2}
-\subsection{Inverse Problems} \label{subsec:2:1}
-In this section, we will consider the EnKF for solving inverse problems. Given a continuous
-map $\mathcal{G} : \mathcal{X} \rightarrow \mathcal{Y}$ between two Hilbert spaces $\mathcal{X}$
-and $\mathcal{Y}$, we would like to identify $u \in \mathcal{X}$ solving 
-\begin{equation} \label{eq:2:1:1}
-    y = \mathcal{G}(u) + \eta,
+\section*{Inverse problems}
+Given a continuous map $\mathcal{G} : \mathcal{X} \rightarrow \mathcal{Y}$ between
+two separable Banach spaces $\mathcal{X}$ and $\mathcal{Y}$, we would like to identify
+the \textit{parameter} $u \in \mathcal{X}$ satisfying 
+\begin{equation} \label{eq-ip}
+    y = \mathcal{G}(u) + \eta, \tag{IP}
 \end{equation}
-where $\eta$ is the \textit{observational noise}. For simplicity, we will only consider the case where $\mathcal{Y}$
-is a finite dimensional space, but the result presented can mostly be extended to support general Hilbert spaces.
-A central element in solving inverse problems is the \textit{least squares functional} $\Phi : \mathcal{X} \times \mathcal{Y} \rightarrow \mathbb{R}$, measuring
-the model-data misfit
-given by
-\begin{equation} \label{eq:2:1:2}
-    \Phi(u; y) = \frac12\norm{\Gamma^{-1/2}\left(y - \mathcal{G}(u)\right)}_\mathcal{Y}^2.
-\end{equation}
-In this expression, $\Gamma$ is a positive semi-definite operator describing the covariance
-structure of the observational noise $\eta$. In the general case, this problem is \textit{ill-posed}
-and minimization of the data-model misfit through minimization of the least squares operator is not
-possible. However, solvability of this system can be improved by use of \textit{regularization} methods.
+where $y \in \mathcal{Y}$ is the \textit{observation} and $\eta \in \mathcal{Y}$ is the
+\textit{observational noise}. The operator $\Gamma$ here is a symmetrical positive-definite
+operator describing the correlation structure of the observational noise. For simplicity,
+we limit ourselves to the case where $\mathcal{Y} = \mathbb{R}^K$ for $K \in \mathbb{N}$.
 
-As thouroughly described by A. Stuart \cite{stuart2010inverse} one successful approach to regularization of inverse problems
-is to consider the problem from a Bayesian point of view. There, the problem in (\ref{eq:2:1:1}) is replaced
-by considering the pair $(u, y)$ as a joint random variable over $\mathcal{X} \times \mathcal{Y}$. Assuming
-that we can encode current knowledge about $u$ in a \textit{prior} distribution $\mu_0$ with $u \sim \mu_0$
-independent of the observational noise $\eta \sim \text{N}(0, \Gamma)$, the solution of the
-\textit{Bayesian inverse problem} is given by $u|y \sim \mu$ with
-\begin{equation} \label{eq:2:1:3}
-    \mu(\text{d}u) \propto \exp\left(-\Phi(u; y)\right)\mu_0(\text{d}u).
+A key element in understanding and solving inverse problems is the \textit{least squares}
+functional $\Phi : \mathcal{X} \times \mathcal{Y} \rightarrow \mathbb{R}$, measuring the
+model-data misfit, given by
+\begin{equation} \label{eq-ls}
+    \Phi(u; y) = \frac12\norm{\Gamma^{-1/2}(y - \mathcal{G}(u))}_\mathcal{Y}^2, \tag{LS}
 \end{equation}
+where $\Gamma$ is a positive semi-definite operator describing the covariance structure
+ of the noise $\eta$. 
 
-We now investigate how the EnKF method can be used to estimate the solution given in (\ref{eq:2:1:3}) of the 
-inverse problem.
+ \section*{Regularization}
+In general, minimizing the model-data misfit (\ref{eq-ls}) is \textit{ill-posed}: that the solution
+might not exist or not be unique. To avoid this, we employ \textit{regularization}
+techniques to improve the solvability of the system. We consider the following two
+approaches
+\begin{itemize}
+    \item{\textbf{Optimization approach.}
+    Replace the minimization problem (\ref{eq-ls}) by
+    \begin{equation*}
+        u^* = \text{arg}\min_{u \in \mathcal{X}} \Phi(u; y) + \norm{u - u_0}_\mathcal{C}^2,
+    \end{equation*}
+    for some $u_0 \in \mathcal{X}$ and covariance operator $\mathcal{C}$.
+    }
+    \item{\textbf{Bayesian approach.}
+    Consider $u \sim \mu_0$ and $\eta \sim \text{N}(0, \Gamma)$ in (\ref{eq-ip}) to obtain
+    \begin{equation*}
+        u^* = u | y \sim \mu,
+    \end{equation*}
+    where $\mu(\text{d}u) \propto \exp(-\Phi(u; y))\mu_0(\text{d}u)$.}
+\end{itemize}
 
-\subsection{The EnKF for inverse problems} \label{subsec:2:2}
-Since the EnKF algorithm is designed to solve data assimilation problem, an artificial dynamic must be
-defined in order to apply the method to inverse problems. To that end, we consider a discrete dynamic
-over the space $\mathcal{X} \times \mathcal{Y}$ defined by the operator
-\begin{equation} \label{eq:2:2:1}
-    \Xi(u, p) = (u, \mathcal{G}(u)).
+A comparison and motivation for the approaches is done by T.J. Sullivan \cite{sullivan2015introductionChap6}.
+In this talk, we focus on the Bayesian approach to regularization of inverse problems.
+
+\section*{Gaussian Process}
+
+We wish to recover a function $u^\dagger \in H^1_0([0, 1])$ from noisy evaluation $y_1, \ldots, y_{K-1}$ 
+of $u^\dagger$ at nodes $x_1, \ldots, x_{K-1}$ where $K \in \mathbb{N}$ and $x_k = k / K$. This translates to
+the following inverse problem
+\begin{equation*}
+    y = \mathcal{O}(u^\dagger) + \eta,
+\end{equation*}
+where $y \in \mathbb{R}^K$ and $\mathcal{O}(u) = (u(x_1), \ldots, u(x_{K-1}))$. We regularize the problem
+using the Bayesian approach: we let $\eta \sim \text{N}(0, \gamma 1)$ with $\gamma = 0.01$ and
+$u \sim \text{N}(0, (-\Delta)^{-1})$. 
+
+This example will be used along the presentation to illustrate different concepts and results.
+
+\section*{EnKF for inverse problems}
+
+The EnKF algorithm approximates partially, noisily observed dynamical systems by 
+evolving an ensemble of $J \in \mathbb{N}$ particles $\{u^{(j)}_n\}_{j=1}^J$ for each time step $n \in \mathbb{N}$.
+We construct an artificial dynamic by discretizing the interpolation between
+$\mu_0$ and $\mu$: given a step size $h \in \mathbb{R}$, we define
+\begin{equation*}
+    \mu_n \propto \exp(-nh\Phi(u; y))\mu_0(\text{d}u) \text{ for } n = 0, \ldots, h^{-1}.
+\end{equation*}
+Applying the EnKF to this dynamic gives the following update rule
+\begin{equation} \label{enkf-update}
+    u_{n+1}^{(j)} = u_{n}^{(j)} + C^{\text{up}}(u_n)[C^{\text{pp}}(u_n) + h^{-1}\Gamma]^{-1}(y_{n+1}^{(j)} - G(u_n^{(j)})), \tag{ENKF-IP}
 \end{equation}
-We then complete this artificial process by defining the observational process, such that for each
-time step $n \in \mathbb{N}$ with associated state $(u_n, p_n)$, the observation $y_n$ is given by
-\begin{equation} \label{eq:2:2:2}
-    y_n = p_n + \xi_n,
-\end{equation}
-where $\{\xi_j\}_{j\in \mathbb{N}}$ is an i.i.d. sequence distributed according to $\text{N}(0, \Sigma)$,
-in which $\Sigma$ is a positive semidefinite matrix.
+with
+\begin{align*}
+    y_{n+1}^{(j)} &= y + \xi_{n+1}^{(j)}, & C^{\text{up}} &= \hat{\text{cov}}(u, \mathcal{G}(u)), \\
+    \{\xi_{n}^{(j)}\}_{n,j} &\sim \text{N}(0, \Sigma) \text{ i.i.d }, & C^{\text{pp}} &= \hat{\text{cov}}(\mathcal{G}(u), \mathcal{G}(u)).
+\end{align*}
 
-The EnKF can then be used to estimate each step $n \in \mathbb{N}$ of the dynamical system using an
-unweighted set of $J$ particles $\{u_n^{(j)}\}_{j = 1}^J$, constructing the empirical measure
-\begin{equation} \label{eq:2:2:3}
-    \mu_n \approx \hat{\mu}_n := \frac1J\sum_{j=1}^J \delta_{u_n^{(j)}}.
-\end{equation}
+The initial ensemble $\{ u_0^{(j)}\}_{j=1}^J$ can be constructed from $J$ i.i.d. draws of the distribution $\mu_0$. 
+However, we will see later that alternative constructions of the initial ensemble might
+be preferable. An analysis of the large ensemble limit can be found in \cite{goldstein2007bayes, law2016deterministic,ernst2015analysis}.
 
-Replacing the dynamic (\ref{eq:2:2:2}) in the standard update formulate of the EnKF gives the
-following update rule for the ensemble of particles
-\begin{equation} \label{eq:2:2:4}
-    \begin{aligned}
-    u_{n+1}^{(j)} &= u_{n}^{(j)} \\
-    &+ C^{\text{up}}(u_n)[C^{\text{pp}}(u_n) + h^{-1}\Gamma]^{-1}(y_{n+1}^{(j)} - G(u_n^{(j)}))
-    \end{aligned}
-\end{equation}
-with 
-\begin{equation}
-    \begin{aligned}
-        C^{\text{up}} &= \hat{\text{cov}}(u, \mathcal{G}(u)),\\
-        C^{\text{pp}} &= \hat{\text{cov}}(\mathcal{G}(u), \mathcal{G}(u)),
-    \end{aligned}
-\end{equation}
-where $\hat{\text{cov}}$ is the empirical covariance computed from the approximate measure $\hat{\mu}_n$.
-We can then consider cases where $\Sigma = \Gamma$, or where $\Sigma = 0$, i.e. where no artificial noise
-is added to the data. In this article, we will only consider the second case.
+\section*{Continuous-time limit}
 
-This application of the EnKF for solving inverse problems can be shown to properly approximate the
-distribution $\mu$ of $u|y$ in the large ensemble limit when the model $\mathcal{G}$ is linear and
-the noise $\eta$ is Gaussian, see \cite{goldstein2007bayes, law2016deterministic}. However, since the
-EnKF relies on a linear approximation, the error term resulting from the model estimation is independent
-of the number of particles, see \cite{ernst2015analysis}.
-
-\section{Study of the continous time limit} \label{sec:3}
-\subsection{EnKF as a gradient flow} \label{subsec:3:1}
-While we have mentionned some properties of the large ensemble limit, it is also interesting to consider
-what happens for $h \rightarrow 0$, that is, we want to consider the continuous time limit
-of the algorithm. With that in mind, we can take a carefull look at the update rule (\ref{eq:2:2:4}) and
-recognize that the equation corresponds to an Euler-Maruyama discretization of the following coupled
-system of SDEs
-\begin{equation} \label{eq:3:1:1}
+Instead of considering how well the ensemble constructed by the EnKF approximates 
+$u | y$ in the large ensemble limit, we study the algorithm for $h \rightarrow 0$. By rewriting the update rule (\ref{enkf-update})
+and taking $h \rightarrow 0$, one recognizes the Euler-Maruyama discretization
+of the following coupled system of SDEs
+\begin{equation*}
     \frac{\text{d}u^{(j)}}{\text{d}t} = C^{\text{up}}(u)\Gamma^{-1}\left(y - \mathcal{G}(u^{(j)}) + \sqrt{\Sigma}\frac{\text{d}W^{(j)}}{\text{d}t}\right),
-\end{equation}
-where $\{W^{(j)}\}_{j=1}^J$ are independent Brownian motions. 
-
-Furthermore, assuming $\mathcal{G}(u) = Au$ is a linear map and $\Sigma = 0$, we obtain a deterministic
-system of coupled ODEs which, given the definition of the empirical covariance is
-\begin{equation} \label{eq:3:1:2}
+\end{equation*}
+where $\{W^{(j)}\}_{j=1}^J$ are independent Brownian motions. Assuming that $\mathcal{G} = A$ is
+linear and that the observations are noise-free, that is
+$\Sigma = 0$, the coupled system of SDEs become the following system of ODEs
+\begin{equation*}
 \begin{aligned}
     \frac{\text{d}u^{(j)}}{\text{d}t} &= \hat{\text{cov}}(u, Au)\Gamma^{-1}(y - Au^{(j)})\\
 &= \frac1J\sum_{k=1}^J \langle A(u^{(k)} - \overline{u}), y - Au^{(j)}\rangle_\Gamma(u^{(k)} - \overline{u})\\
 &= A^T\Gamma^{-1}(y - Au^{(j)}) \hat{\text{cov}}(u, u)\\
 &= -\hat{\text{cov}}(u, u)\text{D}_u\Phi(u^{(j)}; y).
-\end{aligned}
-\end{equation}
+\end{aligned} \tag{ODE}
+\end{equation*}
 
-This shows that in its continuous time limit, the EnKF algorithm performs a set of gradient descents
-for $\Phi(\cdot; y)$, coupled through a preconditioning of the ensemble by its empirical covariance. This
-result draws a link between the optimization and Bayesian approaches to inverse problems.
+Hence, each particle follows a preconditioned gradient flow for $\Phi(\cdot; y)$. This draws a link between a link between the optimization
+and Bayesian approaches to inverse problems.
 
-\subsection{Properties of the gradient flow} \label{subsec:3:2}
+\section*{Analysis}
 
-We are now interested in studying properties of the coupled gradient flows presented
-in the previous section.
+While the construction of the continuous model only justifies considering $t$ up to $1$, we now study properties of the ensemble for $t \rightarrow \infty$.
+To simplify the analysis, we limit ourselves to the linear noise-free case, where
+$y = Au^\dagger$. We start by introducing the following useful quantities:
+\begin{equation*}
+    e^{(j)} = u^{(j)} - \overline{u},
+    \qquad 
+    r^{(j)} = u^{(j)} - u^\dagger,
+    \qquad
+    E_{ij} = \langle Ae^{(i)}, Ae^{(j)} \rangle_\Gamma.
+\end{equation*}
 
-\section{Numerical results} \label{sec:4}
+We can then cite the following results from \cite{schillings2017analysis} about the behaviour 
+of the system (ODE).
 
-\section{Conclusion} \label{sec:5}
+\begin{theorem}
+    Let $\mathcal{X}_0$ be the linear span of $\{u^{(j)}(0)\}_{j=1}^J$, then the system of equations
+    (ODE) possesses a unique ensemble of solutions $\{u^{(j)}\}_{j=1}^J$ with $u^{(j)} \in C([0, \infty); \mathcal{X}_0)$
+    for every $j = 1, \ldots, J$.
+\end{theorem}
 
-\bibliographystyle{model1-num-names}
+\begin{theorem}
+    The matrix $E$ converges to 0 for $t \rightarrow \infty$ with $\norm{E}_2 = \mathcal{O}(Jt^{-1/2}$).
+\end{theorem}
+
+\begin{theorem}
+    Let $\mathcal{Y}_0$ denote the linear span of $\{Au^{(j)}(0)\}_{j=1}^J$, and $\mathcal{Y}_\bot$ denote the orthogonal
+    completement of $\mathcal{Y}_0$ w.r.t. $\langle \cdot, \cdot \rangle_\Gamma$. Assume further that the initial ensemble
+    has been chosen such that $\text{dim}(\mathcal{Y}_\bot) \le \min (\text{dim}(\mathcal{Y}), J-1)$. Then
+    we can decompose $Ar^{(j)} = Ar^{(j)}_0 + Ar^{(j)}_\bot$ with $Ar^{(j)}_0 \in \mathcal{Y}_0$ and $Ar^{(j)}_\bot \in \mathcal{Y}_\bot$
+    and obtain $Ar^{(j)}_0 \rightarrow 0$ as $t \rightarrow \infty$.
+
+\end{theorem}
+
+\section*{Numerical results}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[scale=0.35]{multi_plot.png}
+    \caption{Comparison of the truth to several EnKF estimates for $J = 10$ and $J = 50$}
+\end{figure}
+
+
+\begin{itemize}
+    \item For each ensemble of $J$ particles, the initial ensemble is constructed based on the 
+    first $J$ eigenpairs $(\lambda_j, \psi_j)$ of the covariance operator $(-\Delta)^{-1}$. Thus
+    $u^{(j)} = \sqrt{\lambda_j}\psi_j z_j$ where $\{z_j\}_{j=1} ^J$ are i.i.d. realizations of $\text{N}(0, 1)$. 
+\end{itemize}
+
+
+\bibliographystyle{abbrv}
 \bibliography{../literature/literature.bib}
 
 \end{document}
