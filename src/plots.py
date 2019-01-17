@@ -185,20 +185,22 @@ def plot_convergence(enkf, g, y):
 def plot_multi_convergence(enkfs, g, y, colors):
     plt.figure(figsize=(20,5))
     plt.rc('font', size=14)
-    plt.subplot(1, 2, 1)
+    plt.subplot(1, 2, 2)
     plt.grid()
     plt.title('Convergence of the projected residuals')
     x = np.linspace(1e-4, enkfs[0].until, enkfs[0].path.shape[0])
     plt.loglog(x, 1/x**0.5, '--', color='grey', label="O(1/sqrt(t)")
+    plt.xlabel("t")
     for i, enkf in enumerate(enkfs):
         r_bars, r_min, r_max = __compute_running(enkf, lambda i: g(enkf.path[i, :, :]) - y)
-        plt.loglog(x, r_bars, color=colors[i], label="E[r(t)] for J = %d" % enkf.ensemble_size)
+        plt.loglog(x, r_bars, color=colors[i], label="E[Ar(t)] for J = %d" % enkf.ensemble_size)
         plt.fill_between(x, r_max, r_min, color=colors[i], alpha=0.1, label='spread E[Ar(t)] for J = %d' % enkf.ensemble_size)
     plt.legend()
 
-    plt.subplot(1, 2, 2)
+    plt.subplot(1, 2, 1)
     plt.grid()
     plt.title('Convergence to the ensemble mean')
+    plt.xlabel("t")
     plt.loglog(x, 1/x**0.5, '--', color='grey', label="O(1/sqrt(t)")
     for i, enkf in enumerate(enkfs):
         u_bars = enkf.path.mean(axis=1)

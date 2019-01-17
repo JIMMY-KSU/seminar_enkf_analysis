@@ -8,7 +8,6 @@
 \usepackage{amsthm}
 \usepackage{titling}
 
-\setlength{\droptitle}{-10em}
 
 \newtheorem{lemma}{Lemma}
 \newtheorem{theorem}{Theorem}
@@ -166,19 +165,32 @@ of the system (ODE).
 
 \section*{Numerical results}
 
-\begin{figure}[h]
+\begin{figure} \label{fig-1}
     \centering
     \includegraphics[scale=0.35]{multi_plot.png}
-    \caption{Comparison of the truth to several EnKF estimates for $J = 10$ and $J = 50$}
+    \caption{Comparison of the truth to several EnKF estimates for $J = 5, 10, 50$}
 \end{figure}
 
+\begin{figure} \label{fig-2}
+    \centering
+    \includegraphics[scale=0.30]{convergence_plot.png}
+    \caption{Convergence of EnKF the estimates for $J = 5, 10, 50$}
+\end{figure}
 
-\begin{itemize}
-    \item For each ensemble of $J$ particles, the initial ensemble is constructed based on the 
-    first $J$ eigenpairs $(\lambda_j, \psi_j)$ of the covariance operator $(-\Delta)^{-1}$. Thus
-    $u^{(j)} = \sqrt{\lambda_j}\psi_j z_j$ where $\{z_j\}_{j=1} ^J$ are i.i.d. realizations of $\text{N}(0, 1)$. 
-\end{itemize}
+We now wish to observe the convergence properties of the continuous-time limite of the EnKF algorithm. Since
+the Gaussian process system is not finite dimensional, a discretization is required. We base
+this discretization on a spectral Karhunen–Loève expansion of the Gaussian process which is 
+then cut to a finite number of terms, $N = 100$.
 
+In the algorothm, the initial ensemble is constructed based on the 
+first $J$ eigenpairs $(\lambda_j, \psi_j)$ of the KL expansion. Thus
+$u^{(j)} = \sqrt{\lambda_j}\psi_j z_j$ where $\{z_j\}_{j=1} ^J$ are i.i.d.
+realizations of $\text{N}(0, 1)$ and
+\begin{equation*}
+    \lambda_j = (\pi j)^{-2} \qquad \psi_j(x) = \sqrt{2}\sin(\pi n x).
+\end{equation*}
+
+Results of the experiments are to be found in figures \ref{fig-1} and \ref{fig-2}.
 
 \bibliographystyle{abbrv}
 \bibliography{../literature/literature.bib}
